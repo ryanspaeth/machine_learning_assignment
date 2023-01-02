@@ -1,5 +1,4 @@
 from sklearn.datasets import fetch_openml
-from matplotlib import pyplot as plt
 import numpy as np
 
 # Loading the data set
@@ -25,6 +24,7 @@ for index in range(len(dataset_images)):
 # feature: getting black pixels coordinates
 # threshold when a pixel is black
 threshold_black = 5
+
 for index in range(len(dataset_images)):
     counter = 0
     for y in dataset_images[index]:
@@ -33,4 +33,23 @@ for index in range(len(dataset_images)):
                 counter = counter + 1
     feature_matrix[index][1] = counter
 
-print(feature_matrix[0][1])
+# feature: symmetry x-axis
+for index in range(len(dataset_images)):
+    sum_top = 0
+    sum_bot = 0
+    for y in range(len(dataset_images[index])//2):
+        for x in range(len(dataset_images[index][0])):
+            sum_top += dataset_images[index][y][x]
+            sum_bot += dataset_images[index][y + len(dataset_images[index])//2][x]
+    feature_matrix[index][2] = sum_top - sum_bot
+
+# feature: symmetry y-axis
+for index in range(len(dataset_images)):
+    sum_left = 0
+    sum_right = 0
+    for y in range(len(dataset_images[index])):
+        for x in range(len(dataset_images[index][0])//2):
+            sum_left += dataset_images[index][y][x]
+            sum_right += dataset_images[index][y][x + len(dataset_images[index][0])//2]
+    feature_matrix[index][3] = sum_left - sum_right
+
