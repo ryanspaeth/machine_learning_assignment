@@ -53,3 +53,23 @@ for index in range(len(dataset_images)):
             sum_right += dataset_images[index][y][x + len(dataset_images[index][0])//2]
     feature_matrix[index][3] = sum_left - sum_right
 
+# b) calculate correlation between feature 1 and 2
+feature1_list = []
+feature2_list = []
+for index in feature_matrix:
+    feature1_list.append(index[0])
+    feature2_list.append(index[1])
+
+correlation_1_2 = np.corrcoef(feature1_list,feature2_list)
+print(correlation_1_2[0][0])
+
+"""
+Result: -0.97 -> That means it is negatively correlated. The more black values which are in the image the 
+the less the average value is. That makes sense, because in an black/white image black = 0 and white = 255.
+Therefore, the more black values the more pixels have a value of 0 which means the average pixel value will
+also be smaller.
+Because they have a high correlation, you can remove one of the variables because using both of them increases
+the dimensionality without adding extra information.
+"""
+
+# c)
