@@ -1,22 +1,24 @@
+import logging
 from sklearn.datasets import fetch_openml
 import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.decomposition import PCA
-from sklearn.pipeline import Pipeline
+from sklearn.svm import SVC
+from sklearn.model_selection import GridSearchCV
 import matplotlib.pyplot as plt
-from sklearn.preprocessing import StandardScaler
+
+
 
 # Loading the data set
 mninst = fetch_openml('mnist_784')
 data = mninst.data.to_numpy()
+logging.info("Dataset loaded")
 
 dataset_images = np.reshape(data, (-1, 28, 28))
 
 target = np.array(mninst.target)
 # creating the matrix where the image features are extracted
 feature_matrix = np.zeros((dataset_images.shape[0], 4))
-print(target[:10])
-print(feature_matrix.shape)
 
 # feature: getting the average pixel value per image
 for index in range(len(dataset_images)):
@@ -43,10 +45,10 @@ for index in range(len(dataset_images)):
 for index in range(len(dataset_images)):
     sum_top = 0
     sum_bot = 0
-    for y in range(len(dataset_images[index])//2):
+    for y in range(len(dataset_images[index]) // 2):
         for x in range(len(dataset_images[index][0])):
             sum_top += dataset_images[index][y][x]
-            sum_bot += dataset_images[index][y + len(dataset_images[index])//2][x]
+            sum_bot += dataset_images[index][y + len(dataset_images[index]) // 2][x]
     feature_matrix[index][2] = sum_top - sum_bot
 
 # feature: symmetry y-axis
@@ -54,10 +56,12 @@ for index in range(len(dataset_images)):
     sum_left = 0
     sum_right = 0
     for y in range(len(dataset_images[index])):
-        for x in range(len(dataset_images[index][0])//2):
+        for x in range(len(dataset_images[index][0]) // 2):
             sum_left += dataset_images[index][y][x]
-            sum_right += dataset_images[index][y][x + len(dataset_images[index][0])//2]
+            sum_right += dataset_images[index][y][x + len(dataset_images[index][0]) // 2]
     feature_matrix[index][3] = sum_left - sum_right
+
+logging.info("Features created")
 
 # b) calculate correlation between feature 1 and 2
 feature1_list = []
@@ -66,7 +70,7 @@ for index in feature_matrix:
     feature1_list.append(index[0])
     feature2_list.append(index[1])
 
-correlation_1_2 = np.corrcoef(feature1_list,feature2_list)
+correlation_1_2 = np.corrcoef(feature1_list, feature2_list)
 print(correlation_1_2[0][1])
 
 """
@@ -78,13 +82,39 @@ Because they have a high correlation, you can remove one of the variables becaus
 the dimensionality without adding extra information.
 """
 
-# c) Apply PCA to the data
+# c) Apply PCA to the data and create a scatterplot of it
 pca = PCA()
 feature_matrix = pca.fit_transform(feature_matrix, target)
-plot = plt.scatter(x=feature_matrix[:, 0], y=feature_matrix[:, 1], c=target[:30].astype(np.int32))
+plot = plt.scatter(x=feature_matrix[:, 0], y=feature_matrix[:, 1], c=target.astype(np.int32))
 plt.legend(handles=plot.legend_elements()[0])
 plt.show()
 
-
 # d) split training and test into 60 40
 X_train, X_test, y_train, y_test = train_test_split(feature_matrix, target, test_size=0.4, random_state=0)
+
+# 2.1 SVM
+# a) Create a Linear SVM(soft margin)
+
+# parameters for the grid search cross validation
+parameters = {'C': [10, 5, 1, 0.5, 0.1, 0.05, 0.01, 0.005, 0.001]}
+
+# creating linear SVM model and Grid search
+svm_linear = SVC(kernel='linear')
+clf_linear = GridSearchCV(svm_linear, parameters, scoring='accuracy')
+
+# training the model
+logging.info("training first model")
+clf_linear.fit(X_train, y_train)
+print(sorted(clf_linear.cv_results_.keys()))
+
+# b) Create a RBG Kernel SVM
+
+# parameters for the grid search cross validation
+parameters = {'C': [10, 5, 1, 0.5, 0.1, 0.05, 0.01, 0.005, 0.001],
+              'gamma': [10, 5, 1, 0.5, 0.1, 0.05, 0.01, 0.005, 0.001]}
+
+# creating rgb SVM model and Grid search
+logging.info("training second model")
+svm_rgb = SVC(kernel='rgb')
+clf_rgb = GridSearchCV(svm_rgb, parameters, scoring='accuracy')
+print(sorted(clf_rgb.cv_results_.keys()))
