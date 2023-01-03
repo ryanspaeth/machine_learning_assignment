@@ -1,10 +1,11 @@
-import logging
 from sklearn.datasets import fetch_openml
 import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.decomposition import PCA
 from sklearn.svm import SVC
 from sklearn.model_selection import GridSearchCV
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.naive_bayes import GaussianNB
 import matplotlib.pyplot as plt
 
 
@@ -12,7 +13,6 @@ import matplotlib.pyplot as plt
 # Loading the data set
 mninst = fetch_openml('mnist_784')
 data = mninst.data.to_numpy()
-logging.info("Dataset loaded")
 
 dataset_images = np.reshape(data, (-1, 28, 28))
 
@@ -61,7 +61,6 @@ for index in range(len(dataset_images)):
             sum_right += dataset_images[index][y][x + len(dataset_images[index][0]) // 2]
     feature_matrix[index][3] = sum_left - sum_right
 
-logging.info("Features created")
 
 # b) calculate correlation between feature 1 and 2
 feature1_list = []
@@ -103,9 +102,8 @@ svm_linear = SVC(kernel='linear')
 clf_linear = GridSearchCV(svm_linear, parameters, scoring='accuracy')
 
 # training the model
-logging.info("training first model")
 clf_linear.fit(X_train, y_train)
-print(sorted(clf_linear.cv_results_.keys()))
+print("first model finished")
 
 # b) Create a RBG Kernel SVM
 
@@ -114,7 +112,20 @@ parameters = {'C': [10, 5, 1, 0.5, 0.1, 0.05, 0.01, 0.005, 0.001],
               'gamma': [10, 5, 1, 0.5, 0.1, 0.05, 0.01, 0.005, 0.001]}
 
 # creating rgb SVM model and Grid search
-logging.info("training second model")
-svm_rgb = SVC(kernel='rgb')
+svm_rgb = SVC(kernel='rgf')
 clf_rgb = GridSearchCV(svm_rgb, parameters, scoring='accuracy')
+
+# training the model
+clf_rgb.fit(X_train, y_train)
 print(sorted(clf_rgb.cv_results_.keys()))
+
+# creating KNN model
+parameters = {'n_neighbors': [3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25]}
+neigh = KNeighborsClassifier()
+clf_knn = GridSearchCV(neigh, parameters, scoring='accuracy')
+clf_knn.fit(X_train, y_train)
+print(sorted(clf_rgb.cv_results_.keys()))
+
+# creating naive bayes model
+gnb = GaussianNB()
+gnb.fit(X_train, y_train)
