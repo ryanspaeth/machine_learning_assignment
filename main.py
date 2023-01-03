@@ -1,5 +1,10 @@
 from sklearn.datasets import fetch_openml
 import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.decomposition import PCA
+from sklearn.pipeline import Pipeline
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import StandardScaler
 
 # Loading the data set
 mninst = fetch_openml('mnist_784')
@@ -7,10 +12,11 @@ data = mninst.data.to_numpy()
 
 dataset_images = np.reshape(data, (-1, 28, 28))
 
-y = np.array(mninst.target)
-
+target = np.array(mninst.target)
 # creating the matrix where the image features are extracted
 feature_matrix = np.zeros((dataset_images.shape[0], 4))
+print(target[:10])
+print(feature_matrix.shape)
 
 # feature: getting the average pixel value per image
 for index in range(len(dataset_images)):
@@ -61,7 +67,7 @@ for index in feature_matrix:
     feature2_list.append(index[1])
 
 correlation_1_2 = np.corrcoef(feature1_list,feature2_list)
-print(correlation_1_2[0][0])
+print(correlation_1_2[0][1])
 
 """
 Result: -0.97 -> That means it is negatively correlated. The more black values which are in the image the 
@@ -72,4 +78,13 @@ Because they have a high correlation, you can remove one of the variables becaus
 the dimensionality without adding extra information.
 """
 
-# c)
+# c) Apply PCA to the data
+pca = PCA()
+feature_matrix = pca.fit_transform(feature_matrix, target)
+plot = plt.scatter(x=feature_matrix[:, 0], y=feature_matrix[:, 1], c=target[:30].astype(np.int32))
+plt.legend(handles=plot.legend_elements()[0])
+plt.show()
+
+
+# d) split training and test into 60 40
+X_train, X_test, y_train, y_test = train_test_split(feature_matrix, target, test_size=0.4, random_state=0)
