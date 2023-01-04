@@ -1,3 +1,6 @@
+"""
+Author: Ryan Spaeth
+"""
 from sklearn.datasets import fetch_openml
 import numpy as np
 from sklearn.model_selection import train_test_split
@@ -95,14 +98,19 @@ X_train, X_test, y_train, y_test = train_test_split(feature_matrix, target, test
 # a) Create a Linear SVM(soft margin)
 
 # parameters for the grid search cross validation
-parameters = {'C': [10, 5, 1, 0.5, 0.1, 0.05, 0.01, 0.005, 0.001]}
-
+#parameters = {'C': [10, 5, 1, 0.5, 0.1, 0.05, 0.01, 0.005, 0.001]}
+parameters = [10, 5, 1, 0.5, 0.1, 0.05, 0.01, 0.005, 0.001]
+linear_models = []
+for parameter in parameters:
+    print("model training beginning")
+    svm_linear = SVC(kernel='linear', C=parameter)
+    linear_models.append(svm_linear.fit(X_train[:50],y_train[:50]))
 # creating linear SVM model and Grid search
-svm_linear = SVC(kernel='linear')
-clf_linear = GridSearchCV(svm_linear, parameters, scoring='accuracy')
+#svm_linear = SVC(kernel='linear')
+#clf_linear = GridSearchCV(svm_linear, parameters, scoring='accuracy')
 
 # training the model
-clf_linear.fit(X_train, y_train)
+#clf_linear.fit(X_train, y_train)
 print("first model finished")
 
 # b) Create a RBG Kernel SVM
@@ -112,11 +120,11 @@ parameters = {'C': [10, 5, 1, 0.5, 0.1, 0.05, 0.01, 0.005, 0.001],
               'gamma': [10, 5, 1, 0.5, 0.1, 0.05, 0.01, 0.005, 0.001]}
 
 # creating rgb SVM model and Grid search
-svm_rgb = SVC(kernel='rgf')
+svm_rgb = SVC(kernel='rbf')
 clf_rgb = GridSearchCV(svm_rgb, parameters, scoring='accuracy')
 
 # training the model
-clf_rgb.fit(X_train, y_train)
+clf_rgb.fit(X_train[:50], y_train[:50])
 print(sorted(clf_rgb.cv_results_.keys()))
 
 # creating KNN model
