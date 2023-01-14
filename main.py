@@ -11,8 +11,6 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import GaussianNB
 import matplotlib.pyplot as plt
 
-
-
 # Loading the data set
 mninst = fetch_openml('mnist_784')
 data = mninst.data.to_numpy()
@@ -34,13 +32,13 @@ for index in range(len(dataset_images)):
 
 # feature: getting black pixels coordinates
 # threshold when a pixel is black
-threshold_black = 5
+threshold_black = 200
 
 for index in range(len(dataset_images)):
     counter = 0
     for y in dataset_images[index]:
         for x in y:
-            if x <= threshold_black:
+            if x >= threshold_black:
                 counter = counter + 1
     feature_matrix[index][1] = counter
 
@@ -64,7 +62,6 @@ for index in range(len(dataset_images)):
             sum_right += dataset_images[index][y][x + len(dataset_images[index][0]) // 2]
     feature_matrix[index][3] = sum_left - sum_right
 
-
 # b) calculate correlation between feature 1 and 2
 feature1_list = []
 feature2_list = []
@@ -76,7 +73,7 @@ correlation_1_2 = np.corrcoef(feature1_list, feature2_list)
 print(correlation_1_2[0][1])
 
 """
-Result: -0.97 -> That means it is negatively correlated. The more black values which are in the image the 
+Result: 0.97 -> That means it is negatively correlated. The more black values which are in the image the 
 the less the average value is. That makes sense, because in an black/white image black = 0 and white = 255.
 Therefore, the more black values the more pixels have a value of 0 which means the average pixel value will
 also be smaller.
@@ -87,7 +84,7 @@ the dimensionality without adding extra information.
 # c) Apply PCA to the data and create a scatterplot of it
 pca = PCA()
 feature_matrix = pca.fit_transform(feature_matrix, target)
-plot = plt.scatter(x=feature_matrix[:, 0], y=feature_matrix[:, 1], c=target.astype(np.int32))
+plot = plt.scatter(x=feature_matrix[:, 0], y=feature_matrix[:, 2], c=target.astype(np.int32))
 plt.legend(handles=plot.legend_elements()[0])
 plt.show()
 
@@ -98,23 +95,34 @@ X_train, X_test, y_train, y_test = train_test_split(feature_matrix, target, test
 # a) Create a Linear SVM(soft margin)
 
 # parameters for the grid search cross validation
-#parameters = {'C': [10, 5, 1, 0.5, 0.1, 0.05, 0.01, 0.005, 0.001]}
+# parameters = {'C': [10, 5, 1, 0.5, 0.1, 0.05, 0.01, 0.005, 0.001]}
 parameters = [10, 5, 1, 0.5, 0.1, 0.05, 0.01, 0.005, 0.001]
 linear_models = []
+
 for parameter in parameters:
     print("model training beginning")
     svm_linear = SVC(kernel='linear', C=parameter)
-    linear_models.append(svm_linear.fit(X_train[:50],y_train[:50]))
-# creating linear SVM model and Grid search
-#svm_linear = SVC(kernel='linear')
-#clf_linear = GridSearchCV(svm_linear, parameters, scoring='accuracy')
+    linear_models.append(svm_linear.fit(X_train[:50], y_train[:50]))
 
-# training the model
-#clf_linear.fit(X_train, y_train)
-print("first model finished")
+
+# calculating accuracy
+def get_accuracy(y_pred, y_test):
+    accurate = 0
+    for value_1, value_2 in np.nditer(y_pred, y_test):
+        if value_1 == value_2:
+            accurate = accurate + 1
+    return accurate/len(y_pred)
+
+
+results_linear = {}
+
+for counter in range(len(linear_models)):
+    y_pred = linear_models[counter].predict(X_test)
+    print(type(y_pred))
+    results_linear[f"{counter}" + "-accuracy"] = get_accuracy(y_pred, y_test)
+print(results_linear)
 
 # b) Create a RBG Kernel SVM
-
 # parameters for the grid search cross validation
 parameters = {'C': [10, 5, 1, 0.5, 0.1, 0.05, 0.01, 0.005, 0.001],
               'gamma': [10, 5, 1, 0.5, 0.1, 0.05, 0.01, 0.005, 0.001]}
@@ -125,14 +133,12 @@ clf_rgb = GridSearchCV(svm_rgb, parameters, scoring='accuracy')
 
 # training the model
 clf_rgb.fit(X_train[:50], y_train[:50])
-print(sorted(clf_rgb.cv_results_.keys()))
 
 # creating KNN model
 parameters = {'n_neighbors': [3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25]}
 neigh = KNeighborsClassifier()
 clf_knn = GridSearchCV(neigh, parameters, scoring='accuracy')
 clf_knn.fit(X_train, y_train)
-print(sorted(clf_rgb.cv_results_.keys()))
 
 # creating naive bayes model
 gnb = GaussianNB()
