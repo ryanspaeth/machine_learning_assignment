@@ -9,6 +9,8 @@ from sklearn.svm import SVC
 from sklearn.model_selection import GridSearchCV
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import GaussianNB
+from sklearn.metrics import f1_score, accuracy_score
+from sklearn.inspection import DecisionBoundaryDisplay
 import matplotlib.pyplot as plt
 
 # Loading the data set
@@ -73,10 +75,10 @@ correlation_1_2 = np.corrcoef(feature1_list, feature2_list)
 print(correlation_1_2[0][1])
 
 """
-Result: 0.97 -> That means it is negatively correlated. The more black values which are in the image the 
-the less the average value is. That makes sense, because in an black/white image black = 0 and white = 255.
-Therefore, the more black values the more pixels have a value of 0 which means the average pixel value will
-also be smaller.
+Result: 0.97 -> That means it is correlated. The more black values which are in the image the 
+the higher the average value is. That makes sense, because in an black/white image black = 255 and white = 0.
+Therefore, the more black values the more pixels have a value of 255 which means the average pixel value will
+also be higher.
 Because they have a high correlation, you can remove one of the variables because using both of them increases
 the dimensionality without adding extra information.
 """
@@ -84,7 +86,7 @@ the dimensionality without adding extra information.
 # c) Apply PCA to the data and create a scatterplot of it
 pca = PCA()
 feature_matrix = pca.fit_transform(feature_matrix, target)
-plot = plt.scatter(x=feature_matrix[:, 0], y=feature_matrix[:, 2], c=target.astype(np.int32))
+plot = plt.scatter(x=feature_matrix[:50, 0], y=feature_matrix[:50, 2], c=target[:50].astype(np.int32))
 plt.legend(handles=plot.legend_elements()[0])
 plt.show()
 
@@ -95,51 +97,74 @@ X_train, X_test, y_train, y_test = train_test_split(feature_matrix, target, test
 # a) Create a Linear SVM(soft margin)
 
 # parameters for the grid search cross validation
-# parameters = {'C': [10, 5, 1, 0.5, 0.1, 0.05, 0.01, 0.005, 0.001]}
-parameters = [10, 5, 1, 0.5, 0.1, 0.05, 0.01, 0.005, 0.001]
-linear_models = []
+parameters = {'C': [10, 5, 1, 0.5, 0.1, 0.05, 0.01, 0.005, 0.001]}
+# parameters = [10, 5, 1, 0.5, 0.1, 0.05, 0.01, 0.005, 0.001]
+# linear_models = []
 
-for parameter in parameters:
-    print("model training beginning")
-    svm_linear = SVC(kernel='linear', C=parameter)
-    linear_models.append(svm_linear.fit(X_train[:50], y_train[:50]))
+svm_linear = SVC(kernel='linear', max_iter=1000)
+search = GridSearchCV(svm_linear, parameters, scoring='accuracy', n_jobs=1, cv=10, refit=True)
+# execute search
+result = search.fit(X_train, y_train)
+print(result.best_estimator_)
+print(result.best_params_)
+"""It shows that the param of C: 0.001 has the best results."""
 
+y_pred = result.predict(X_test)
+print(accuracy_score(y_test, y_pred))
+print(f1_score(y_test, y_pred, average='micro'))
 
-# calculating accuracy
-def get_accuracy(y_pred, y_test):
-    accurate = 0
-    for value_1, value_2 in np.nditer(y_pred, y_test):
-        if value_1 == value_2:
-            accurate = accurate + 1
-    return accurate/len(y_pred)
-
-
-results_linear = {}
-
-for counter in range(len(linear_models)):
-    y_pred = linear_models[counter].predict(X_test)
-    print(type(y_pred))
-    results_linear[f"{counter}" + "-accuracy"] = get_accuracy(y_pred, y_test)
-print(results_linear)
-
+"""
+ 0.12 % accuracy becauwe max_iter 1000
+ 0.12 % f1_score because max_iter 1000 
+"""
 # b) Create a RBG Kernel SVM
 # parameters for the grid search cross validation
 parameters = {'C': [10, 5, 1, 0.5, 0.1, 0.05, 0.01, 0.005, 0.001],
               'gamma': [10, 5, 1, 0.5, 0.1, 0.05, 0.01, 0.005, 0.001]}
 
 # creating rgb SVM model and Grid search
-svm_rgb = SVC(kernel='rbf')
+svm_rgb = SVC(kernel='rbf', max_iter=10)
 clf_rgb = GridSearchCV(svm_rgb, parameters, scoring='accuracy')
-
+""" Best model: {'C': 0.01, 'gamma': 0.005}"""
 # training the model
-clf_rgb.fit(X_train[:50], y_train[:50])
+result = clf_rgb.fit(X_train, y_train)
+print(result.best_params_)
 
+y_pred = result.predict(X_test)
+print(accuracy_score(y_test, y_pred))
+print(f1_score(y_test, y_pred, average='micro'))
+"""
+   Accuracy: 0.11360714285714285
+   F1_Score: 0.11360714285714284, cos max_iter 10, f1_score with sklearn and macro returns accuracy ? source: https://scikit-learn.org/stable/modules/generated/sklearn.metrics.f1_score.html#sklearn.metrics.f1_score
+"""
 # creating KNN model
 parameters = {'n_neighbors': [3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25]}
 neigh = KNeighborsClassifier()
 clf_knn = GridSearchCV(neigh, parameters, scoring='accuracy')
-clf_knn.fit(X_train, y_train)
+result = clf_knn.fit(X_train, y_train)
+print(result.best_params_)
+"""
+    Best model: {'n_neighbors': 23}
+"""
+
+y_pred = result.predict(X_test)
+print(accuracy_score(y_test, y_pred))
+print(f1_score(y_test, y_pred, average='micro'))
+"""
+    Accuracy: 0.35328571428571426
+    F1-Score: 0.35328571428571426
+"""
 
 # creating naive bayes model
 gnb = GaussianNB()
-gnb.fit(X_train, y_train)
+result = gnb.fit(X_train, y_train)
+
+
+y_pred = result.predict(X_test)
+print(accuracy_score(y_test, y_pred))
+print(f1_score(y_test, y_pred, average='micro'))
+
+""" 
+    Accuracy: 0.4551071428571429
+    F1_Score: 0.4551071428571429
+"""
